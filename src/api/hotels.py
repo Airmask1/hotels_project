@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
-from schemas.hotels import Hotel, HotelPatch
+from src.api.dependencies import PaginationDep, PaginationParams
+from src.schemas.hotels import Hotel, HotelPatch
 
 router = APIRouter(prefix="/hotels")
 
@@ -57,7 +58,7 @@ hotels = [
     },
     {
         "id": 9,
-        "name": "Budget Stay",
+        "name": "Budget Towers",
         "address": "99 Cheap Street, Thriftyville",
         "rooms": 50,
     },
@@ -72,16 +73,13 @@ hotels = [
 
 @router.get("")
 def get_hotels(
-    page: Optional[int] = Query(default=1),
-    per_page: Optional[int] = Query(default=3),
+    pagination: PaginationDep,
     name: Optional[str] = Query(None, min_length=2, max_length=50),
     address: Optional[str] = Query(None, min_length=5, max_length=100),
 ):
 
-    if page < 1:
-        raise HTTPException(status_code=400, detail="Page number must be 1 or greater.")
-    stop = page * per_page
-    start = per_page * (page - 1)
+    stop = pagination.page * pagination.per_page
+    start = pagination.per_page * (pagination.page - 1)
     filtered_hotels = hotels
 
     if name:
