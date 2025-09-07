@@ -1,98 +1,35 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy import insert, select
 
 from src.api.dependencies import PaginationDep, PaginationParams
+from src.database import async_session_maker
+from src.models.hotels import HotelsOrm
 from src.schemas.hotels import Hotel, HotelPatch
 
 router = APIRouter(prefix="/hotels")
 
-hotels = [
-    {
-        "id": 1,
-        "name": "Seaside Inn",
-        "address": "123 Ocean Drive, Beach City",
-        "rooms": 42,
-    },
-    {
-        "id": 2,
-        "name": "Mountain Lodge",
-        "address": "77 Alpine Way, Hilltown",
-        "rooms": 28,
-    },
-    {
-        "id": 3,
-        "name": "City Center Hotel",
-        "address": "9 Central Plaza, Metropolis",
-        "rooms": 120,
-    },
-    {
-        "id": 4,
-        "name": "Desert Oasis",
-        "address": "1 Sand Dune Road, Oasis Town",
-        "rooms": 30,
-    },
-    {
-        "id": 5,
-        "name": "Forest Retreat",
-        "address": "55 Pine Cone Lane, Woodland",
-        "rooms": 20,
-    },
-    {
-        "id": 6,
-        "name": "Urban Suites",
-        "address": "200 Main Street, Big City",
-        "rooms": 200,
-    },
-    {
-        "id": 7,
-        "name": "Lakeside Bungalows",
-        "address": "10 Lake View, Waterton",
-        "rooms": 15,
-    },
-    {
-        "id": 8,
-        "name": "Historic Grand Hotel",
-        "address": "1 Old Town Square, Heritage City",
-        "rooms": 80,
-    },
-    {
-        "id": 9,
-        "name": "Budget Towers",
-        "address": "99 Cheap Street, Thriftyville",
-        "rooms": 50,
-    },
-    {
-        "id": 10,
-        "name": "Luxury Towers",
-        "address": "101 High Roller Ave, Richburg",
-        "rooms": 300,
-    },
-]
-
 
 @router.get("")
-def get_hotels(
+async def get_hotels(
     pagination: PaginationDep,
-    name: Optional[str] = Query(None, min_length=2, max_length=50),
-    address: Optional[str] = Query(None, min_length=5, max_length=100),
+    location: Optional[str] = Query(None, description="Hotel address"),
+    title: Optional[str] = Query(
+        None, min_length=3, max_length=100, description="Hotel name"
+    ),
 ):
-
-    stop = pagination.page * pagination.per_page
-    start = pagination.per_page * (pagination.page - 1)
-    filtered_hotels = hotels
-
-    if name:
-        filtered_hotels = [
-            h for h in filtered_hotels if name.lower() in h.get("name", "").lower()
-        ]
-    if address:
-        filtered_hotels = [
-            h
-            for h in filtered_hotels
-            if address.lower() in h.get("address", "").lower()
-        ]
-    return filtered_hotels[start:stop]
+    per_page = pagination.per_page or 5
+    async with async_session_maker() as session:
+        query = select(HotelsOrm)
+        if location:
+            query = query.filter(HotelsOrm.location.like(f"%{location}%"))
+        if title:
+            query = query.filter(HotelsOrm.title.ilike(f"%{title}%"))
+        query = query.limit(per_page).offset(per_page * (pagination.page - 1))
+        result = await session.execute(query)
+        hotels = result.scalars().all()
+        return hotels
 
 
 @router.get("/{hotel_id}")
@@ -118,16 +55,31 @@ def put_hotel(
 
 
 @router.post("")
-def create_hotel(hotel_data: Hotel):
-    global hotels
-    hotels.append(
-        {
-            "id": hotels[-1]["id"] + 1,
-            "title": hotel_data.name,
-            "address": hotel_data.address,
-            "rooms": hotel_data.rooms,
+async def create_hotel(
+    hotel_data: Hotel = Body(
+        openapi_examples={
+            "1": {
+                "summary": "Sochi",
+                "value": {
+                    "title": "Hotel in Sochi with 5 starts",
+                    "location": "sochi_127",
+                },
+            },
+            "2": {
+                "summary": "Dubai",
+                "value": {
+                    "title": "Abu-Dabi-Hotel",
+                    "location": "sheich_150",
+                },
+            },
         }
     )
+):
+    async with async_session_maker() as session:
+        add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
+        await session.execute(add_hotel_stmt)
+        await session.commit()
+
     return {"status": "OK"}
 
 
