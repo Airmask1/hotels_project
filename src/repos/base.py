@@ -25,9 +25,12 @@ class BaseRepository:
         result = await self.session.scalars(add_stmt)
         return result.first()
 
-    async def edit(self, data: BaseModel, **filter_by) -> None:
+    async def edit(self, data: BaseModel, patch: bool = False, **filter_by) -> None:
+
         update_stmt = (
-            update(self.model).filter_by(**filter_by).values(**data.model_dump())
+            update(self.model)
+            .filter_by(**filter_by)
+            .values(**data.model_dump(exclude_unset=patch))
         )
         result = await self.session.execute(update_stmt)
         if result.rowcount == 0:

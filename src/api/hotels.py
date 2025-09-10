@@ -1,7 +1,6 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from sqlalchemy import insert, select
 
 from src.api.dependencies import PaginationDep
 from src.database import async_session_maker
@@ -31,11 +30,9 @@ async def get_hotels(
 
 
 @router.get("/{hotel_id}")
-def get_hotel_by_id(hotel_id: int):
-    for hotel in hotels:
-        if hotel["id"] == hotel_id:
-            return hotel
-    raise HTTPException(status_code=404, detail="Hotel not found")
+async def get_hotel_by_id(hotel_id: int):
+    async with async_session_maker() as session:
+        return await HotelsRepository(session).get_one_or_none(id=hotel_id)
 
 
 @router.put("/{hotel_id}")
@@ -81,19 +78,16 @@ async def create_hotel(
 
 
 @router.patch("/{hotel_id}")
-def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
-    global hotels
-    for h in hotels:
-        if h.get("id") == hotel_id:
-            if hotel_data.name:
-                h["name"] = hotel_data.name
-            if hotel_data.address:
-                h["address"] = hotel_data.address
-            if hotel_data.rooms:
-                h["rooms"] = hotel_data.rooms
-            return h
-
-    raise HTTPException(status_code=404, detail="Hotel not found")
+async def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
+    async with async_session_maker() as session:
+        try:
+            await HotelsRepository(session).edit(hotel_data, id=hotel_id, patch=True)
+            await session.commit()
+            return {"status": "OK"}
+        except ObjectNotFoundError:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        except MultipleObjectsFoundError:
+            raise HTTPException(status_code=400, detail="Multiple objects were found")
 
 
 @router.delete("/{hotel_id}")
