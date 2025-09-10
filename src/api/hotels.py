@@ -5,9 +5,9 @@ from sqlalchemy import insert, select
 
 from src.api.dependencies import PaginationDep
 from src.database import async_session_maker
-from src.models.hotels import HotelsOrm
+from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
 from src.repos.hotels import HotelsRepository
-from src.schemas.hotels import Hotel, HotelPatch
+from src.schemas.hotels import Hotel, HotelPatch, HotelPut
 
 router = APIRouter(prefix="/hotels")
 
@@ -39,17 +39,17 @@ def get_hotel_by_id(hotel_id: int):
 
 
 @router.put("/{hotel_id}")
-def put_hotel(
-    hotel_id: int, name: str = Body(), address: str = Body(), rooms: int = Body()
-):
-    global hotels
-    new_hotel = {"id": hotel_id, "name": name, "address": address, "rooms": rooms}
-    for h in hotels:
-        if h.get("id") == hotel_id:
-            h.update(new_hotel)
-            return h
+async def put_hotel(hotel_id: int, hotel_data: HotelPut):
 
-    raise HTTPException(status_code=404, detail="Hotel not found")
+    async with async_session_maker() as session:
+        try:
+            await HotelsRepository(session).edit(hotel_data, id=hotel_id)
+            await session.commit()
+            return {"status": "OK"}
+        except ObjectNotFoundError:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        except MultipleObjectsFoundError:
+            raise HTTPException(status_code=400, detail="Multiple objects were found")
 
 
 @router.post("")
@@ -94,3 +94,16 @@ def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
             return h
 
     raise HTTPException(status_code=404, detail="Hotel not found")
+
+
+@router.delete("/{hotel_id}")
+async def delete_hotel(hotel_id: int):
+    async with async_session_maker() as session:
+        try:
+            await HotelsRepository(session).delete(id=hotel_id)
+            await session.commit()
+            return {"status": "OK"}
+        except ObjectNotFoundError:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+        except MultipleObjectsFoundError:
+            raise HTTPException(status_code=400, detail="Multiple objects were found")
