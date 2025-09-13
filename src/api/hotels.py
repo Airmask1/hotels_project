@@ -6,7 +6,7 @@ from src.api.dependencies import PaginationDep
 from src.database import async_session_maker
 from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
 from src.repos.hotels import HotelsRepository
-from src.schemas.hotels import Hotel, HotelPatch, HotelPut
+from src.schemas.hotels import Hotel, HotelAdd, HotelPatch, HotelPut
 
 router = APIRouter(prefix="/hotels")
 
@@ -36,7 +36,7 @@ async def get_hotel_by_id(hotel_id: int):
 
 
 @router.put("/{hotel_id}")
-async def put_hotel(hotel_id: int, hotel_data: HotelPut):
+async def put_hotel(hotel_id: int, hotel_data: HotelAdd):
 
     async with async_session_maker() as session:
         try:
@@ -51,7 +51,7 @@ async def put_hotel(hotel_id: int, hotel_data: HotelPut):
 
 @router.post("")
 async def create_hotel(
-    hotel_data: Hotel = Body(
+    hotel_data: HotelAdd = Body(
         openapi_examples={
             "1": {
                 "summary": "Sochi",
