@@ -8,7 +8,7 @@ from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
 from src.repos.hotels import HotelsRepository
 from src.schemas.hotels import Hotel, HotelAdd, HotelPatch, HotelPut
 
-router = APIRouter(prefix="/hotels")
+router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 
 @router.get("")

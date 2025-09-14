@@ -8,3 +8,7 @@ class MultipleObjectsFoundError(Exception):
     """Raised when multiple objects are found when expecting one."""
 
     pass
+
+
+class UserAlreadyExists(Exception):
+    pass
