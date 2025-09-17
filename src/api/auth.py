@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Response
 
+from src.api.dependencies import UserIdDep
 from src.database import async_session_maker
 from src.exceptions import UserAlreadyExists
 from src.repos.users import UsersRepository
@@ -38,7 +39,14 @@ async def register_user(data: UserRequestAdd):
             raise HTTPException(status_code=500, detail="User already exists")
 
 
-@router.get("/only_auth")
-async def only_auth(request: Request):
-    access_token = request.cookies.get("access_token")
-    print(access_token)
+@router.get("/me")
+async def get_me(user_id: UserIdDep):
+    async with async_session_maker() as session:
+        user = await UsersRepository(session).get_one_or_none(id=user_id)
+        return user
+
+
+@router.get("/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token")
+    return {"status": "logged out"}
