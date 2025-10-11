@@ -13,8 +13,3 @@ class Hotel(HotelAdd):
 class HotelPatch(BaseModel):
     title: str | None = Field(None)
     location: str | None = Field(None)
-
-
-class HotelPut(BaseModel):
-    title: str
-    location: str

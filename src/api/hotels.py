@@ -6,7 +6,7 @@ from src.api.dependencies import PaginationDep
 from src.database import async_session_maker
 from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
 from src.repos.hotels import HotelsRepository
-from src.schemas.hotels import Hotel, HotelAdd, HotelPatch, HotelPut
+from src.schemas.hotels import Hotel, HotelAdd, HotelPatch
 
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
