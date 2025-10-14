@@ -1,4 +1,4 @@
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import insert, select
 
 from src.models.rooms import RoomsOrm
 from src.repos.base import BaseRepository
@@ -19,12 +19,10 @@ class RoomsRepository(BaseRepository):
         result = await self.session.execute(query)
         return [self.schema.model_validate(model) for model in result.scalars().all()]
 
-    async def get_one_or_none(self, hotel_id: int, room_id: int):
-        query = select(self.model)
-        if hotel_id and room_id:
-            query = query.where(
-                self.model.hotel_id == hotel_id, self.model.id == room_id
-            )
+    async def get_one_or_none(self, room_id: int, hotel_id: int | None = None):
+        query = select(self.model).filter(self.model.id == room_id)
+        if hotel_id:
+            query = query.filter(self.model.hotel_id == hotel_id)
         result = await self.session.execute(query)
         model = result.scalars().one_or_none()
         return None if model is None else self.schema.model_validate(model)
