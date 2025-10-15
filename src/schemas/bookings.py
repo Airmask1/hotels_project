@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class BookingAdd(BaseModel):
     date_from: date
     date_to: date
+    room_id: int
 
 
 class Booking(BaseModel):
