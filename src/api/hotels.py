@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -17,11 +18,16 @@ async def get_hotels(
     title: Optional[str] = Query(
         None, min_length=3, max_length=100, description="Hotel name"
     ),
+    date_from: date = Query(example="2024-08-01"),
+    date_to: date = Query(example="2024-08-10"),
 ):
     per_page = pagination.per_page or 5
-    return await db.hotels.get_all(
+
+    return await db.hotels.get_filtered_by_time(
+        date_from=date_from,
         location=location,
         title=title,
+        date_to=date_to,
         limit=per_page,
         offset=per_page * (pagination.page - 1),
     )
