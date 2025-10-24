@@ -29,13 +29,13 @@ class BaseRepository:
         model = result.scalars().one_or_none()
         if model is None:
             return None
-        return self.schema.model_validate(model, from_attributes=True)
+        return self.schema.model_validate(model)
 
     async def add(self, data: BaseModel):
         add_stmt = insert(self.model).values(**data.model_dump()).returning(self.model)
         result = await self.session.scalars(add_stmt)
         model = result.first()
-        return self.schema.model_validate(model, from_attributes=True)
+        return self.schema.model_validate(model)
 
     async def edit(self, data: BaseModel, patch: bool = False, **filter_by) -> None:
 
