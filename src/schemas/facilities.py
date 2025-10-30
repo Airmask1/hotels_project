@@ -12,3 +12,12 @@ class Facility(FacilityAdd):
 
 class FacilityPatch(BaseModel):
     title: str | None = Field(None)
+
+
+class RoomFacilityAdd(BaseModel):
+    room_id: int
+    facility_id: int
+
+
+class RoomFacility(RoomFacilityAdd):
+    id: int

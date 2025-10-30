@@ -4,7 +4,8 @@ from fastapi import APIRouter, Body, HTTPException, Query
 
 from src.api.dependencies import DBDep
 from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
-from src.schemas.rooms import RoomAdd, RoomPatch
+from src.schemas.facilities import RoomFacilityAdd
+from src.schemas.rooms import RoomAdd, RoomAddRequest, RoomPatch, RoomPatchRequest
 
 router = APIRouter(prefix="/hotels/{hotel_id}/rooms", tags=["Номера"])
 
@@ -28,10 +29,16 @@ async def get_hotel_room(hotel_id: int, room_id: int, db: DBDep):
 
 
 @router.put("/{room_id}")
-async def put_hotel_room(db: DBDep, hotel_id: int, room_id: int, room_data: RoomAdd):
+async def put_hotel_room(
+    db: DBDep, hotel_id: int, room_id: int, room_data: RoomAddRequest
+):
+    _room_data = RoomAdd(**room_data.model_dump())
 
     try:
-        await db.rooms.edit(room_data, id=room_id, hotel_id=hotel_id)
+        await db.rooms.edit(_room_data, id=room_id, hotel_id=hotel_id)
+        await db.rooms_facilities.edit(
+            room_id=room_id, facilities_ids=room_data.facilities_ids
+        )
         await db.commit()
         return {"status": "OK"}
     except ObjectNotFoundError:
@@ -44,7 +51,7 @@ async def put_hotel_room(db: DBDep, hotel_id: int, room_id: int, room_data: Room
 async def create_hotel_room(
     db: DBDep,
     hotel_id: int,
-    room_data: RoomAdd = Body(
+    room_data: RoomAddRequest = Body(
         openapi_examples={
             "1": {
                 "summary": "Five Luxe hotel room",
@@ -53,6 +60,7 @@ async def create_hotel_room(
                     "description": "Wooden cabin with fireplace and stunning mountain view.",
                     "price": 190,
                     "quantity": 4,
+                    "facilities_ids": [],
                 },
             },
             "2": {
@@ -62,13 +70,20 @@ async def create_hotel_room(
                     "description": "Overlooks garden, includes balcony and tea/coffee set.",
                     "price": 100,
                     "quantity": 5,
+                    "facilities_ids": [],
                 },
             },
         }
     ),
 ):
+    _room_data = RoomAdd(**room_data.model_dump())
+    room = await db.rooms.add(_room_data, hotel_id=hotel_id)
 
-    room = await db.rooms.add(room_data, hotel_id=hotel_id)
+    room_facilities_data = [
+        RoomFacilityAdd(room_id=room.id, facility_id=f_id)
+        for f_id in room_data.facilities_ids
+    ]
+    await db.rooms_facilities.add_batch(room_facilities_data)
     await db.commit()
 
     return {"status": "OK", "data": room}
@@ -76,10 +91,16 @@ async def create_hotel_room(
 
 @router.patch("/{room_id}")
 async def patch_hotel_room(
-    db: DBDep, hotel_id: int, room_id: int, room_data: RoomPatch
+    db: DBDep, hotel_id: int, room_id: int, room_data: RoomPatchRequest
 ):
+    _room_data = RoomPatch(**room_data.model_dump())
     try:
-        await db.rooms.edit(room_data, id=room_id, hotel_id=hotel_id, patch=True)
+        await db.rooms.edit(
+            _room_data, id=room_id, hotel_id=hotel_id, patch=True, exclude_none=True
+        )
+        await db.rooms_facilities.edit(
+            room_id=room_id, facilities_ids=room_data.facilities_ids
+        )
         await db.commit()
         return {"status": "OK"}
     except ObjectNotFoundError:

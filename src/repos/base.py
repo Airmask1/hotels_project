@@ -37,12 +37,22 @@ class BaseRepository:
         model = result.first()
         return self.schema.model_validate(model)
 
-    async def edit(self, data: BaseModel, patch: bool = False, **filter_by) -> None:
+    async def add_batch(self, data: list[BaseModel]):
+        add_stmt = insert(self.model).values([item.model_dump() for item in data])
+        await self.session.execute(add_stmt)
+
+    async def edit(
+        self,
+        data: BaseModel,
+        patch: bool = False,
+        exclude_none: bool = False,
+        **filter_by
+    ) -> None:
 
         update_stmt = (
             update(self.model)
             .filter_by(**filter_by)
-            .values(**data.model_dump(exclude_unset=patch))
+            .values(**data.model_dump(exclude_unset=patch, exclude_none=exclude_none))
         )
         model = await self.session.execute(update_stmt)
         if model.rowcount == 0:
