@@ -94,6 +94,7 @@ async def patch_hotel_room(
     db: DBDep, hotel_id: int, room_id: int, room_data: RoomPatchRequest
 ):
     _room_data = RoomPatch(**room_data.model_dump())
+
     try:
         await db.rooms.edit(
             _room_data, id=room_id, hotel_id=hotel_id, patch=True, exclude_none=True

@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
+
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+
+if TYPE_CHECKING:
+    from src.models.rooms import RoomsOrm
 
 
 class FacilitiesOrm(Base):
@@ -9,6 +16,9 @@ class FacilitiesOrm(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100))
+    rooms: Mapped[List[RoomsOrm]] = relationship(
+        "RoomsOrm", back_populates="facilities", secondary="rooms_facilities"
+    )
 
 
 class RoomsFacilitiesOrm(Base):
