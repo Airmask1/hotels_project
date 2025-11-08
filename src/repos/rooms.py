@@ -1,17 +1,18 @@
 from datetime import date
 
 from sqlalchemy import insert, select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 
 from src.models.rooms import RoomsOrm
 from src.repos.base import BaseRepository
+from src.repos.mappers.mappers import RoomDataMapper, RoomWithRelsDataMapper
 from src.repos.utils import rooms_ids_for_bookings
-from src.schemas.rooms import Room, RoomAdd, RoomWithRels
+from src.schemas.rooms import RoomAdd
 
 
 class RoomsRepository(BaseRepository):
     model = RoomsOrm
-    schema = Room
+    mapper = RoomDataMapper
 
     def __init__(self, session):
         self.session = session
@@ -27,7 +28,10 @@ class RoomsRepository(BaseRepository):
             .filter(self.model.id.in_(vacant_rooms_ids))
         )
         result = await self.session.execute(query)
-        return [RoomWithRels.model_validate(model) for model in result.scalars().all()]
+        return [
+            RoomWithRelsDataMapper.map_to_domain_entity(model)
+            for model in result.scalars().all()
+        ]
 
     async def get_one_or_none(self, room_id: int, hotel_id: int | None = None):
         query = (
@@ -39,7 +43,11 @@ class RoomsRepository(BaseRepository):
             query = query.filter(self.model.hotel_id == hotel_id)
         result = await self.session.execute(query)
         model = result.scalars().one_or_none()
-        return None if model is None else RoomWithRels.model_validate(model)
+        return (
+            None
+            if model is None
+            else RoomWithRelsDataMapper.map_to_domain_entity(model)
+        )
 
     async def add(self, room: RoomAdd, hotel_id: int):
         stmt = (
@@ -49,4 +57,4 @@ class RoomsRepository(BaseRepository):
         )
         result = await self.session.execute(stmt)
         m = result.scalars().first()
-        return self.schema.model_validate(m, from_attributes=True)
+        return self.mapper.map_to_domain_entity(m)

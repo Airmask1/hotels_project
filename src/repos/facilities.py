@@ -1,23 +1,21 @@
-from datetime import date
-
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.orm import selectinload
 
 from src.exceptions import ObjectNotFoundError
 from src.models.facilities import FacilitiesOrm, RoomsFacilitiesOrm
 from src.repos.base import BaseRepository
+from src.repos.mappers.mappers import FacilityDataMapper, RoomFacilityDataMapper
 from src.repos.rooms import RoomsOrm
-from src.schemas.facilities import Facility, RoomFacility
 
 
 class FacilitiesRepository(BaseRepository):
     model = FacilitiesOrm
-    schema = Facility
+    mapper = FacilityDataMapper
 
 
 class RoomsFacilitiesRepository(BaseRepository):
     model = RoomsFacilitiesOrm
-    schema = RoomFacility
+    mapper = RoomFacilityDataMapper
 
     async def edit(
         self,

@@ -3,12 +3,13 @@ from sqlalchemy import insert, select
 from src.exceptions import UserAlreadyExists
 from src.models.users import UsersOrm
 from src.repos.base import BaseRepository
-from src.schemas.users import User, UserAdd, UserWithHashedPassword
+from src.repos.mappers.mappers import UserDataMapper
+from src.schemas.users import UserAdd, UserWithHashedPassword
 
 
 class UsersRepository(BaseRepository):
     model = UsersOrm
-    schema = User
+    mapper = UserDataMapper
 
     async def add(self, data: UserAdd):
         existing_user = await self.get_one_or_none(email=data.email)
