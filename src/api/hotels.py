@@ -2,15 +2,18 @@ from datetime import date
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi_cache.decorator import cache
 
 from src.api.dependencies import DBDep, PaginationDep
 from src.exceptions import MultipleObjectsFoundError, ObjectNotFoundError
 from src.schemas.hotels import HotelAdd, HotelPatch
+from src.utils.custom_cache import custom_cache
 
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 
 @router.get("")
+@custom_cache(expire=20)
 async def get_hotels(
     pagination: PaginationDep,
     db: DBDep,
